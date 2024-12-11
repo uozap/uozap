@@ -1,5 +1,11 @@
 # uozap
 
+This repository contains a multi-server group chat system implemented in Java.
+
+- [Documentation in English](docs/en/README.md)
+- [Documentazione in Italiano](docs/it/README.md)
+
+
 ## License
 
 ```
