@@ -1,0 +1,14 @@
+# BASIC gitignore file
+
+# java stuff which we do not care about
+bin/
+out/
+target/
+
+# ide or code editor stuff
+.idea/
+.vscode/
+
+# log and temporary files
+*.log
+*.tmp
