@@ -2,9 +2,14 @@
 
 This repository contains a multi-server group chat system implemented in Java.
 
+## Documentation
 - [Documentation in English](docs/en/README.md)
 - [Documentazione in Italiano](docs/it/README.md)
 
+## Contributions
+
+- [Contribution in English](docs/en/CONTRIBUTING.md)
+- [Contribuzione in Italiano](docs/it/CONTRIBUTING.md)
 
 ## License
 
