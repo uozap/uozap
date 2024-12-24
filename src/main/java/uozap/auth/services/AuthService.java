@@ -40,4 +40,12 @@ public class AuthService {
 
         return tokenService.generateToken(user);
     }
+
+    /**
+     *
+     * @return the token service object
+     */
+    public TokenService getTokenService() {
+        return tokenService;
+    }
 }
