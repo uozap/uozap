@@ -35,9 +35,17 @@ public class AuthService {
         }
 
         if (user == null || !user.getHashedPassword().equals(HashService.hashPassword(password, user.getSalt()))) {
-            throw new Exception("Invalid username/email or password.");
+            throw new Exception("Invalid username/email or password."); // shall not be too specific on the error cause, for security measures
         }
 
         return tokenService.generateToken(user);
+    }
+
+    /**
+     *
+     * @return the token service object
+     */
+    public TokenService getTokenService() {
+        return tokenService;
     }
 }
