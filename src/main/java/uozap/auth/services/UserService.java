@@ -36,7 +36,8 @@ public class UserService {
         byte[] salt = HashService.generateSalt();
         String hashedPassword = HashService.hashPassword(password, salt);
         UUID id = generateUserId();
-        User user = new User(id, username, email, hashedPassword, salt, Role.USER);
+        //User user = new User(id, username, email, hashedPassword, salt, Role.USER);
+        User user = new User(id, username, email, hashedPassword, salt);
 
         // shall be replaced with db operations
         usersByUsername.put(username, user);
@@ -64,4 +65,6 @@ public class UserService {
     public User getUserByEmail(String email) {
         return usersByEmail.get(email);
     }
+
+
 }
