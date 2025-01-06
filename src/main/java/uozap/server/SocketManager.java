@@ -4,6 +4,7 @@ import uozap.auth.services.AuthService;
 import uozap.auth.users.User;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
@@ -47,6 +48,7 @@ public class SocketManager extends Thread {
                  */
                 Socket clientSocket = serverSocket.accept();
                 DataInputStream din = new DataInputStream(clientSocket.getInputStream());
+                ObjectOutputStream oout = new ObjectOutputStream(clientSocket.getOutputStream());
 
                 String chatName = din.readUTF();
                 String token = din.readUTF();
@@ -70,7 +72,7 @@ public class SocketManager extends Thread {
                      * the client handler is started in a new thread to handle the client connection.
                      * the client handler is responsible for sending and receiving messages.
                      */
-                    ClientHandler clientHandler = new ClientHandler(user, chat, clientSocket, din);
+                    ClientHandler clientHandler = new ClientHandler(user, chat, clientSocket, din, oout);
                     chat.addClientHandler(clientHandler);
                     clientHandler.start();
 
@@ -88,6 +90,5 @@ public class SocketManager extends Thread {
         }   
     }
 
-    
 }
 

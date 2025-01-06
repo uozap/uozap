@@ -40,12 +40,12 @@ class ClientHandler extends Thread {
      * @param din the input stream for receiving messages
      * @throws Exception if output stream creation fails
      */
-    public ClientHandler(User user, Chat chat, Socket clientSocket, DataInputStream din) throws Exception {
+    public ClientHandler(User user, Chat chat, Socket clientSocket, DataInputStream din, ObjectOutputStream oout) throws Exception {
         this.user = user;
         this.chat = chat;
         this.clientSocket = clientSocket;
         this.din = din;
-        this.oout = new ObjectOutputStream(clientSocket.getOutputStream());
+        this.oout = oout;
         this.running = true;
     }
 
@@ -60,10 +60,11 @@ class ClientHandler extends Thread {
             while (running) {
                 String message = din.readUTF();
                 Message chatMessage = new Message(message, user);
+                System.out.println("a message was sent by: " + chatMessage.getSender().getUsername() + ": " + chatMessage.getContent());
                 chat.broadcastMessage(chatMessage, this);
             }
         } catch (Exception e) {
-            System.err.println("error in client handler: " + e.getMessage());
+            e.printStackTrace();
         } finally {
             cleanup();
         }
@@ -79,8 +80,10 @@ class ClientHandler extends Thread {
         try {
             oout.writeObject(message);
             oout.flush();
+            System.out.println("a message was bradcasted by: " + message.getSender().getUsername() + ": " + message.getContent());
         } catch (IOException e) {
             System.err.println("error sending message: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
