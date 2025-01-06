@@ -2,6 +2,7 @@ package uozap.server;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.ObjectInputStream;
 import java.net.Socket;
 
 import uozap.auth.services.AuthService;
@@ -71,8 +72,8 @@ public class ServerTestMain {
         String token2 = as.authenticate("username2", "password2");
 
         // simulate multiple clients connecting to the chat
-        Thread client1 = new Thread(() -> simulateClientConnection("TestChat", token1));
-        Thread client2 = new Thread(() -> simulateClientConnection("TestChat", token2));
+        Thread client1 = new Thread(() -> simulateClientConnection("TestChat", token1, user1));
+        Thread client2 = new Thread(() -> simulateClientConnection("TestChat", token2, user2));
 
         client1.start();
         client2.start();
@@ -87,17 +88,24 @@ public class ServerTestMain {
      * @param chatName the name of the chat room
      * @param token the authentication token for the user
      */
-    private static void simulateClientConnection(String chatName, String token) {
+    private static void simulateClientConnection(String chatName, String token, User user) {
         try (Socket socket = new Socket("localhost", 7878);
              DataOutputStream dout = new DataOutputStream(socket.getOutputStream());
-             DataInputStream din = new DataInputStream(socket.getInputStream())) {
+             ObjectInputStream oin = new ObjectInputStream(socket.getInputStream())) {
 
             // send chat name and token to the server
             dout.writeUTF(chatName);
             dout.writeUTF(token);
 
             // simulate sending a message
-            dout.writeUTF("Hello, World!");
+            dout.writeUTF("Hello, World!, This is: " + user.getUsername());
+
+            while (true) {
+                // read messages from the server
+                Object message = oin.readObject();
+                System.out.println("Message: " + message + " recived by user " + user.getUsername());
+                
+            }
 
             // note: In a real client, you would have a separate thread to read messages from the server
         } catch (Exception e) {
