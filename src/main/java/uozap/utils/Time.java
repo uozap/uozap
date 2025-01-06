@@ -1,12 +1,18 @@
 package uozap.utils;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
  * this class handles timestamp management for messages and other time-sensitive operations.
  */
-public class Time {
+public class Time implements Serializable {
+
+    @Serial // i have no idea about what this @Serial is, it is used at compile-time...
+    private static final long serialVersionUID = 1L;
+
     private LocalDateTime timestamp;
 
     /**
