@@ -1,0 +1,12 @@
+version: '3.1'
+
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: uozap
+    volumes:
+      - ./src/main/resources/db_init.sql:/docker-entrypoint-initdb.d/db_init.sql
+    ports:
+      - "3306:3306"
