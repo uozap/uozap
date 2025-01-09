@@ -43,8 +43,11 @@ public class ServerTestMain {
         AuthService as = new AuthService(us, ts);
         System.out.println(GREEN + "DONE" + RESET);
 
+
+
+
         System.out.print("- socket manager: ");
-        SocketManager sm = new SocketManager(as);
+        SocketManager sm = new SocketManager(as, us, ts);
         System.out.println(GREEN + "DONE" + RESET);
 
         // start the server in a separate thread
@@ -61,14 +64,19 @@ public class ServerTestMain {
 
         System.out.println(GREEN + "Server is up and running." + RESET);
 
+
+
+
+
+        /*
         // register users
-        us.registerUser("username1", "email1@example.com", "password1");
+        us.registerUser("username3", "email1@example.com", "password1");
         us.registerUser("username2", "email2@example.com", "password2");
 
         // authenticate users
-        User user1 = us.getUserByUsername("username1");
+        User user1 = us.getUserByUsername("username3");
         User user2 = us.getUserByUsername("username2");
-        String token1 = as.authenticate("username1", "password1");
+        String token1 = as.authenticate("username3", "password1");
         String token2 = as.authenticate("username2", "password2");
 
         // simulate multiple clients connecting to the chat
@@ -81,13 +89,15 @@ public class ServerTestMain {
         client1.join();
         client2.join();
     }
-
-    /**
+    */
+    /*
      * simulates a client connection to the chat server.
      *
      * @param chatName the name of the chat room
      * @param token the authentication token for the user
      */
+
+    /*
     private static void simulateClientConnection(String chatName, String token, User user) {
         try (Socket socket = new Socket("localhost", 7878);
              DataOutputStream dout = new DataOutputStream(socket.getOutputStream());
@@ -104,12 +114,18 @@ public class ServerTestMain {
                 // read messages from the server
                 Object message = oin.readObject();
                 System.out.println("Message: " + message + " recived by user " + user.getUsername());
-                
+
             }
 
             // note: In a real client, you would have a separate thread to read messages from the server
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+
+     */
     }
+
+
+
 }

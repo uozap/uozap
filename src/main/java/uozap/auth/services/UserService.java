@@ -41,6 +41,7 @@ public class UserService {
         // shall be replaced with db operations
         usersByUsername.put(username, user);
         usersByEmail.put(email, user);
+
     }
 
     /**

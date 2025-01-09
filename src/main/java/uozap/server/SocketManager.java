@@ -1,94 +1,133 @@
 package uozap.server;
 
 import uozap.auth.services.AuthService;
+import uozap.auth.services.TokenService;
+import uozap.auth.services.UserService;
 import uozap.auth.users.User;
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
+
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.HashMap;
-import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * manages socket connections and chat rooms for the messaging server.
- * handles client authentication and connection routing to appropriate chats.
+ * Manages socket connections and chat rooms for the messaging server.
+ * Handles client authentication and connection routing to appropriate chats.
  */
 public class SocketManager extends Thread {
-    /** maps chat names to their corresponding Chat instances */
-    private HashMap<String, Chat> chats;
-    
-    /** service for authenticating users and validating tokens */
+    private final ConcurrentHashMap<String, DataOutputStream> activeClients;
     private final AuthService authService;
+    private final TokenService ts;
+    private final UserService us;
 
-    /**
-     * initializes the socket manager and starts listening for connections.
-     * creates new chats or routes clients to existing ones based on requests.
-     *
-     * @param authService service used to validate user tokens
-     */
-    public SocketManager(AuthService authService) {
-        this.chats = new HashMap<String, Chat>();
+    public SocketManager(AuthService authService, UserService us, TokenService ts) {
+        this.activeClients = new ConcurrentHashMap<>();
         this.authService = authService;
+        this.us = us;
+        this.ts = ts;
     }
 
-    /**
-     * starts the socket manager and listens for incoming connections.
-     * creates a new chat for each new connection.
-     */
     @Override
     public void run() {
-        System.out.println("multiServer started...");
+        System.out.println("Server started on port 7878...");
 
-        // start listening on port 7878.
         try (ServerSocket serverSocket = new ServerSocket(7878)) {
-            while(true) {
-                /*
-                 * the server accepts a client connection and creates a new socket for it.
-                 */
+            while (true) {
                 Socket clientSocket = serverSocket.accept();
-                DataInputStream din = new DataInputStream(clientSocket.getInputStream());
-                ObjectOutputStream oout = new ObjectOutputStream(clientSocket.getOutputStream());
+                System.out.println("New client connected: " + clientSocket);
 
-                String chatName = din.readUTF();
-                String token = din.readUTF();
-
-                try {
-                    User user = authService.getTokenService().validateToken(token);
-
-                    /*
-                     * the client is then routed to the appropriate chat room based on the request.
-                     */
-                    Chat chat;
-                    if(!chats.containsKey(chatName)) {
-                        chat = new Chat(chatName, UUID.randomUUID());
-                        chats.put(chatName, chat);
-                        chat.start();
-                    } else {
-                        chat = chats.get(chatName);
-                    }
-
-                    /*
-                     * the client handler is started in a new thread to handle the client connection.
-                     * the client handler is responsible for sending and receiving messages.
-                     */
-                    ClientHandler clientHandler = new ClientHandler(user, chat, clientSocket, din, oout);
-                    chat.addClientHandler(clientHandler);
-                    clientHandler.start();
-
-                    System.out.println("user: " + user.getUsername() + " joined chat: " + chatName);
-
-                } catch (Exception e) {
-                    System.err.println("error: " + e.getMessage());
-                    try {
-                        clientSocket.close();
-                    } catch (IOException ignored) {}
-                }
+                // Handle the client in a separate thread
+                new Thread(() -> handleClient(clientSocket)).start();
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
-        }   
+        }
     }
 
-}
+    private void handleClient(Socket clientSocket) {
+        try (DataInputStream din = new DataInputStream(clientSocket.getInputStream());
+             DataOutputStream dout = new DataOutputStream(clientSocket.getOutputStream())) {
 
+            String username = null;
+            boolean authenticated = false;
+
+            while (true) {
+                String command = din.readUTF();
+                System.out.println("Received command: " + command);
+
+                if (command.startsWith("/register")) {
+                    // /register-{username}-{email}-{password}
+                    String[] parts = command.split("-");
+                    if (parts.length == 4) {
+                        username = parts[1];
+                        String email = parts[2];
+                        String password = parts[3];
+                        us.registerUser(username, email, password);
+                        dout.writeUTF("User registered successfully");
+                    } else {
+                        dout.writeUTF("Invalid register command format");
+                    }
+                } else if (command.startsWith("/token")) {
+                    // /token-{username}-{password}
+                    String[] parts = command.split("-");
+                    if (parts.length == 3) {
+                        username = parts[1];
+                        String password = parts[2];
+                        String token = authService.authenticate(username, password);
+                        if (token != null) {
+                            authenticated = true;
+                            dout.writeUTF("Token: " + token);
+                        } else {
+                            dout.writeUTF("Invalid credentials");
+                        }
+                    } else {
+                        dout.writeUTF("Invalid token command format");
+                    }
+                } else if (authenticated && command.startsWith("/joinChat")) {
+                    // /joinChat-{username}
+                    String[] parts = command.split("-");
+                    if (parts.length == 2) {
+                        username = parts[1];
+                        activeClients.put(username, dout); // Register client for chat
+                        dout.writeUTF("Chat joined successfully");
+                    } else {
+                        dout.writeUTF("Invalid joinChat command format");
+                    }
+                } else if (authenticated && command.startsWith("/message")) {
+                    // /message-{content}
+                    String message = command.substring(9);
+                    broadcastMessage(username, message);
+                } else if (!authenticated) {
+                    dout.writeUTF("Please authenticate first");
+                } else {
+                    dout.writeUTF("Unknown command");
+                }
+                dout.flush();
+            }
+
+        } catch (Exception e) {
+            System.err.println("Client disconnected: " + clientSocket);
+        } finally {
+            try {
+                clientSocket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void broadcastMessage(String sender, String message) {
+        String fullMessage = sender + ": " + message;
+        System.out.println("Broadcasting message: " + fullMessage);
+
+        // Send the message to all connected clients
+        activeClients.forEach((username, dout) -> {
+            try {
+                dout.writeUTF(fullMessage);
+                dout.flush();
+            } catch (IOException e) {
+                System.err.println("Failed to send message to " + username);
+            }
+        });
+    }
+}
