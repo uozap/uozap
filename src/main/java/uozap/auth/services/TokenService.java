@@ -1,34 +1,33 @@
 package uozap.auth.services;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.sql.SQLException;
 import java.util.UUID;
+
 import uozap.auth.users.User;
+import uozap.database.DatabaseService;
 
 /**
  * this class is used for the management of authentication tokens.
- * (saves in-memory tokens, should be replaced in the db)
  */
 public class TokenService {
-    private Map<String, User> tokenStore = new HashMap<>();
 
-     /**
-      * generates a new authentication token for a user.
-      */
-    public String generateToken(User user) {
+    /**
+     * generates a new authentication token for a user.
+     */
+    public String generateToken(User user) throws SQLException {
         String token = UUID.randomUUID().toString();
-        tokenStore.put(token, user);
+        DatabaseService.addToken(token, user.getId());
         return token;
     }
 
     /**
      * validates a token and returns the associated user.
      */
-    public User validateToken(String token) throws Exception {
-        User user = tokenStore.get(token);
-        if (user == null) {
-            throw new Exception("Invalid token.");
+    public User validateToken(String token) throws SQLException {
+        UUID userId = DatabaseService.getUserIdByToken(token);
+        if (userId != null) {
+            return DatabaseService.getUserById(userId);
         }
-        return user;
+        throw new SQLException("Invalid token.");
     }
 }
