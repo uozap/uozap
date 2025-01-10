@@ -1,6 +1,5 @@
 package uozap.server;
 
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.ObjectInputStream;
 import java.net.Socket;
@@ -43,11 +42,8 @@ public class ServerTestMain {
         AuthService as = new AuthService(us, ts);
         System.out.println(GREEN + "DONE" + RESET);
 
-
-
-
         System.out.print("- socket manager: ");
-        SocketManager sm = new SocketManager(as, us, ts);
+        SocketManager sm = new SocketManager(as);
         System.out.println(GREEN + "DONE" + RESET);
 
         // start the server in a separate thread
@@ -64,11 +60,6 @@ public class ServerTestMain {
 
         System.out.println(GREEN + "Server is up and running." + RESET);
 
-
-
-
-
-        /*
         // register users
         us.registerUser("username3", "email1@example.com", "password1");
         us.registerUser("username2", "email2@example.com", "password2");
@@ -89,15 +80,13 @@ public class ServerTestMain {
         client1.join();
         client2.join();
     }
-    */
-    /*
+    
+    /**
      * simulates a client connection to the chat server.
      *
      * @param chatName the name of the chat room
      * @param token the authentication token for the user
      */
-
-    /*
     private static void simulateClientConnection(String chatName, String token, User user) {
         try (Socket socket = new Socket("localhost", 7878);
              DataOutputStream dout = new DataOutputStream(socket.getOutputStream());
@@ -123,7 +112,7 @@ public class ServerTestMain {
         }
 
 
-     */
+     
     }
 
 

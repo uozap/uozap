@@ -1,14 +1,13 @@
 package uozap.server;
 
-import uozap.auth.services.AuthService;
-import uozap.auth.services.TokenService;
-import uozap.auth.services.UserService;
-import uozap.auth.users.User;
-
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ConcurrentHashMap;
+
+import uozap.auth.services.AuthService;
 
 /**
  * Manages socket connections and chat rooms for the messaging server.
@@ -17,14 +16,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SocketManager extends Thread {
     private final ConcurrentHashMap<String, DataOutputStream> activeClients;
     private final AuthService authService;
-    private final TokenService ts;
-    private final UserService us;
 
-    public SocketManager(AuthService authService, UserService us, TokenService ts) {
+    public SocketManager(AuthService authService) {
         this.activeClients = new ConcurrentHashMap<>();
         this.authService = authService;
-        this.us = us;
-        this.ts = ts;
     }
 
     @Override
@@ -56,18 +51,21 @@ public class SocketManager extends Thread {
                 System.out.println("Received command: " + command);
 
                 if (command.startsWith("/register")) {
+
                     // /register-{username}-{email}-{password}
                     String[] parts = command.split("-");
                     if (parts.length == 4) {
                         username = parts[1];
                         String email = parts[2];
                         String password = parts[3];
-                        us.registerUser(username, email, password);
+                        authService.getUserService().registerUser(username, email, password);
                         dout.writeUTF("User registered successfully");
                     } else {
                         dout.writeUTF("Invalid register command format");
                     }
+                    
                 } else if (command.startsWith("/token")) {
+
                     // /token-{username}-{password}
                     String[] parts = command.split("-");
                     if (parts.length == 3) {
@@ -83,24 +81,33 @@ public class SocketManager extends Thread {
                     } else {
                         dout.writeUTF("Invalid token command format");
                     }
+
                 } else if (authenticated && command.startsWith("/joinChat")) {
+
                     // /joinChat-{username}
                     String[] parts = command.split("-");
                     if (parts.length == 2) {
                         username = parts[1];
-                        activeClients.put(username, dout); // Register client for chat
+                        activeClients.put(username, dout);
                         dout.writeUTF("Chat joined successfully");
                     } else {
                         dout.writeUTF("Invalid joinChat command format");
                     }
+
                 } else if (authenticated && command.startsWith("/message")) {
+
                     // /message-{content}
                     String message = command.substring(9);
                     broadcastMessage(username, message);
+
                 } else if (!authenticated) {
+
                     dout.writeUTF("Please authenticate first");
+
                 } else {
+
                     dout.writeUTF("Unknown command");
+
                 }
                 dout.flush();
             }
@@ -120,7 +127,6 @@ public class SocketManager extends Thread {
         String fullMessage = sender + ": " + message;
         System.out.println("Broadcasting message: " + fullMessage);
 
-        // Send the message to all connected clients
         activeClients.forEach((username, dout) -> {
             try {
                 dout.writeUTF(fullMessage);

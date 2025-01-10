@@ -35,7 +35,7 @@ public class ServerMain {
         System.out.println(GREEN + "DONE" + RESET);
 
         System.out.print("- socket manager: ");
-        SocketManager sm = new SocketManager(as, us, ts);
+        SocketManager sm = new SocketManager(as);
         System.out.println(GREEN + "DONE" + RESET);
 
         new Thread(() -> {

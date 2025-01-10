@@ -1,17 +1,23 @@
 package uozap.UI;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.Socket;
+
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
-
-import java.io.*;
-import java.net.Socket;
 
 public class Register extends Application {
 
@@ -50,17 +56,14 @@ public class Register extends Application {
 
             new Thread(() -> {
                 try {
-                    // Una sola connessione per l'intera sessione
                     Socket socket = new Socket("localhost", 7878);
                     DataOutputStream dout = new DataOutputStream(socket.getOutputStream());
                     DataInputStream din = new DataInputStream(socket.getInputStream());
 
-                    // Registrazione
                     dout.writeUTF("/register-" + username + "-" + email + "-" + password);
                     dout.flush();
                     System.out.println(din.readUTF());
 
-                    // Autenticazione
                     dout.writeUTF("/token-" + username +  "-" + password);
                     dout.flush();
                     String tokenResponse = din.readUTF();
@@ -71,14 +74,12 @@ public class Register extends Application {
                     }
                     String token = tokenResponse.substring(7);
 
-                    // Join chat
                     dout.writeUTF("/joinChat-" + username);
                     dout.flush();
                     String joinResponse = din.readUTF();
                     if (joinResponse.startsWith("Chat joined successfully")) {
-                        // Apri la finestra della chat solo quando il server conferma
                         Platform.runLater(() -> {
-                            primaryStage.close(); // Chiude la finestra di registrazione
+                            primaryStage.close();
                             openChatWindow(socket, dout, din, "username1");
                         });
                     } else {
@@ -116,7 +117,6 @@ public class Register extends Application {
         inputBox.getChildren().addAll(messageField, sendButton);
         chatLayout.setBottom(inputBox);
 
-        // Thread per ricevere i messaggi
         new Thread(() -> {
             try {
                 while (true) {
@@ -128,7 +128,6 @@ public class Register extends Application {
             }
         }).start();
 
-        // Gestisci l'invio dei messaggi
         sendButton.setOnAction(event -> {
             try {
                 String message = messageField.getText();
@@ -144,7 +143,7 @@ public class Register extends Application {
         chatStage.setScene(chatScene);
         chatStage.setOnCloseRequest(event -> {
             try {
-                socket.close(); // Chiude il socket quando si chiude la finestra della chat
+                socket.close();
             } catch (IOException ex) {
                 ex.printStackTrace();
             }

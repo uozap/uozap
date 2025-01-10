@@ -1,10 +1,10 @@
 package uozap.server;
 
 import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+
 import uozap.auth.users.User;
 import uozap.entities.Message;
 
