@@ -1,6 +1,7 @@
 package uozap.server;
 
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
@@ -28,6 +29,8 @@ class ClientHandler extends Thread {
     
     /** output stream for sending messages to client */
     private final ObjectOutputStream oout;
+
+    private final DataOutputStream dout;
     
     /** flag indicating if the handler thread should continue running */
     private boolean running;
@@ -47,6 +50,7 @@ class ClientHandler extends Thread {
         this.clientSocket = clientSocket;
         this.din = din;
         this.oout = oout;
+        this.dout = new DataOutputStream(clientSocket.getOutputStream());
         this.running = true;
     }
 
@@ -88,6 +92,17 @@ class ClientHandler extends Thread {
         }
     }
 
+    public void sendMessage(String message) {
+        try {
+            System.out.println("Sending message to client: " + message); // Debug line
+            dout.writeUTF(message);
+            dout.flush();
+        } catch (IOException e) {
+            System.err.println("Error sending message: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     /**
      * performs cleanup when client disconnects or connection errors occur.
      * stops the handler thread, removes user from chat, and closes socket.
@@ -100,5 +115,14 @@ class ClientHandler extends Thread {
         } catch (Exception e) {
             System.err.println("error during cleanup: " + e.getMessage());
         }
+    }
+
+    /**
+     * returns the authenticated user associated with this client handler.
+     *
+     * @return the authenticated user
+     */
+    public User getUser() {
+        return user;
     }
 }

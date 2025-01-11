@@ -2,6 +2,7 @@ package uozap.server;
 
 import java.util.ArrayList;
 import java.util.UUID;
+
 import uozap.auth.users.User;
 import uozap.entities.Message;
 
@@ -85,6 +86,20 @@ public class Chat extends Thread {
             }
         } catch (Exception e) {
             System.err.println("error broadcasting message: " + e.getMessage());
+        }
+    }
+
+    public void broadcastMessage(String message, ClientHandler sender) {
+        try {
+            addMessage(new Message(message, sender.getUser()));
+            String formattedMessage = sender.getName() + ": " + message;
+            for (ClientHandler handler : clientHandlers) {
+                if (handler != sender) {
+                    handler.sendMessage(formattedMessage);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error broadcasting message: " + e.getMessage());
         }
     }
 
