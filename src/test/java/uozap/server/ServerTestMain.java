@@ -1,6 +1,5 @@
 package uozap.server;
 
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.ObjectInputStream;
 import java.net.Socket;
@@ -62,13 +61,13 @@ public class ServerTestMain {
         System.out.println(GREEN + "Server is up and running." + RESET);
 
         // register users
-        us.registerUser("username1", "email1@example.com", "password1");
+        us.registerUser("username3", "email1@example.com", "password1");
         us.registerUser("username2", "email2@example.com", "password2");
 
         // authenticate users
-        User user1 = us.getUserByUsername("username1");
+        User user1 = us.getUserByUsername("username3");
         User user2 = us.getUserByUsername("username2");
-        String token1 = as.authenticate("username1", "password1");
+        String token1 = as.authenticate("username3", "password1");
         String token2 = as.authenticate("username2", "password2");
 
         // simulate multiple clients connecting to the chat
@@ -81,7 +80,7 @@ public class ServerTestMain {
         client1.join();
         client2.join();
     }
-
+    
     /**
      * simulates a client connection to the chat server.
      *
@@ -104,12 +103,18 @@ public class ServerTestMain {
                 // read messages from the server
                 Object message = oin.readObject();
                 System.out.println("Message: " + message + " recived by user " + user.getUsername());
-                
+
             }
 
             // note: In a real client, you would have a separate thread to read messages from the server
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+
+     
     }
+
+
+
 }

@@ -48,4 +48,12 @@ public class AuthService {
     public TokenService getTokenService() {
         return tokenService;
     }
+
+    /**
+     *
+     * @return the user service object
+     */
+    public UserService getUserService() {
+        return userService;
+    }
 }
