@@ -105,8 +105,10 @@ public class SocketManager extends Thread {
 
             System.out.println("Handler setup complete for: " + username);
             dout.writeUTF("Chat joined successfully");
+            dout.flush();
         } else {
             dout.writeUTF("Failed to join chat");
+            dout.flush();
         }
     }
 
@@ -116,8 +118,12 @@ public class SocketManager extends Thread {
      */
     private void handleClient(Socket clientSocket) {
         String username = null;
-        try (DataInputStream din = new DataInputStream(clientSocket.getInputStream());
-             DataOutputStream dout = new DataOutputStream(clientSocket.getOutputStream())) {
+        DataInputStream din = null;
+        DataOutputStream dout = null;
+
+        try{
+            din = new DataInputStream(clientSocket.getInputStream());
+            dout = new DataOutputStream(clientSocket.getOutputStream()); 
 
             boolean authenticated = false;
 
@@ -135,8 +141,10 @@ public class SocketManager extends Thread {
                         String password = parts[3];
                         authService.getUserService().registerUser(username, email, password);
                         dout.writeUTF("User registered successfully");
+                        dout.flush();
                     } else {
                         dout.writeUTF("Invalid register command format");
+                        dout.flush();
                     }
                     
                 } else if (command.startsWith("/token")) {
@@ -150,11 +158,14 @@ public class SocketManager extends Thread {
                         if (token != null) {
                             authenticated = true;
                             dout.writeUTF("Token: " + token);
+                            dout.flush();
                         } else {
                             dout.writeUTF("Invalid credentials");
+                            dout.flush();
                         }
                     } else {
                         dout.writeUTF("Invalid token command format");
+                        dout.flush();
                     }
 
                 } else if (authenticated && command.startsWith("/joinChat")) {
@@ -166,14 +177,25 @@ public class SocketManager extends Thread {
                         handleJoinChat(chatName, username, clientSocket, din, dout);
                     } else {
                         dout.writeUTF("Invalid joinChat command format");
+                        dout.flush();
                     }
 
-                } else if (authenticated && command.startsWith("/message")) {
+                } else if (authenticated && (command.startsWith("/message") || command.startsWith("essage") )) {
 
                     // /message-{content}
                     // String message = command.substring(9);
-                    String message = command.replaceFirst("^/message-", "");
-                    message = message.replaceFirst("^/message-", ""); // fixing cases where removing the substring is not enought
+                    String message = "error retriving this message";
+                    if (command.startsWith("/message")){
+                        message = command.replaceFirst("^/message-", "");
+                    } else {
+                        message = command.replaceFirst("^essage-", "");
+                    }
+
+                    if (message.startsWith("/message")){
+                        message = message.replaceFirst("^/message-", ""); 
+                        // fixing cases where removing the substring is not enought
+                    }
+                    
                     String chatName = userChatMap.get(username);
                     Chat chat = chatRooms.get(chatName);
                     if (chat != null) {
@@ -192,14 +214,15 @@ public class SocketManager extends Thread {
 
                 } else if (!authenticated) {
 
-                    dout.writeUTF("Please authenticate first");
+                    dout.writeUTF("Please authenticate first");  
+                    dout.flush();
 
                 } else {
 
                     dout.writeUTF("Unknown command");
+                    dout.flush();
 
                 }
-                dout.flush();
             }
 
             // System.out.println("HOW DID THE WHILE CLOSE WHIT NO EXCEPTION");
