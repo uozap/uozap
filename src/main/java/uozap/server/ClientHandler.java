@@ -110,12 +110,18 @@ class ClientHandler extends Thread {
             dout.flush();
             System.out.println("message flushed");
         } catch (IOException e) {
-            System.err.println("Error sending message: " + e.getMessage());
+            System.err.println("error sending message: " + e.getMessage());
             e.printStackTrace();
             cleanup();
         }
     }
 
+    /**
+    * sends a message to the connected client using object serialization.
+    * automatically flushes the output stream after writing.
+    * 
+    * @param message the String to send to the client
+    */
     public void sendMessage(String message) {
         try {
             System.out.println("a String message was sent: " + message);
@@ -123,7 +129,7 @@ class ClientHandler extends Thread {
             dout.flush();
             System.out.println("message flushed");
         } catch (IOException e) {
-            System.err.println("Error sending message: " + e.getMessage());
+            System.err.println("error sending message: " + e.getMessage());
             e.printStackTrace();
             cleanup();
         }

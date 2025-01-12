@@ -125,17 +125,21 @@ public class Chat extends Thread {
         }
     }
 
+    /**
+     * broadcast a welcome message to all the connected clients.
+     */
     public void broadcastUserJoined(User user) {
         String message = user.getUsername() + " has joined the chat";
         broadcastMessage(message, null);
     }
     
+    /**
+     * broadcast a goodbye message to all the connected clients.
+     */
     public void broadcastUserLeft(User user) {
         String message = user.getUsername() + " has left the chat";
         broadcastMessage(message, null);
     }
-
-    // remove message later on
 
     /**
      * check if the user is already logged into the chat.

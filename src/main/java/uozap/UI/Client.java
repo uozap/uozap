@@ -19,30 +19,69 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
+/**
+ * client-side implementation of the chat application.
+ * handles user interface and network communication with the server.
+ */
 public class Client extends JFrame {
+
+    /** text field for username input during login/registration. */
     private JTextField userInput;
+
+    /** text field for email input during registration. */
     private JTextField emailInput;
+    
+    /** password field for secure password input. */
     private JPasswordField passInput;
+    
+    /** indicates whether the login window is in login or register mode. */
     private boolean isLoginMode = false;
     
+    /** socket connection to the server. */
     private Socket socket;
+    
+    /** input stream for receiving server messages. */
     private DataInputStream din;
+    
+    /** output stream for sending messages to server. */
     private DataOutputStream dout;
+    
+    /** current user's username. */
     private String username;
+    
+    /** name of the current chat room. */
     private String currentChat;
+    
+    /** flag to control message handling thread. */
     private volatile boolean running = true;
     
+    /** main chat window frame. */
     private JFrame chatFrame;
+    
+    /** text area for displaying chat messages. */
     private JTextArea chatArea;
+    
+    /** text field for composing messages. */
     private JTextField messageField;
+    
+    /** text field for entering chat room name. */
     private JTextField joinChatField;
+    
+    /** button for joining chat rooms. */
     private JButton joinChatButton;
 
+    /**
+     * creates a new client instance and initializes the login window.
+     * establishes connection to the server.
+     */
     public Client() {
         setupLoginWindow();
         connectToServer();
     }
 
+    /**
+     * sets up the initial login/registration window with input fields and buttons.
+     */
     private void setupLoginWindow() {
         setTitle("UoZap Login");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -82,6 +121,10 @@ public class Client extends JFrame {
         setVisible(true);
     }
 
+    /**
+     * handles form submission for both login and registration.
+     * sends appropriate commands to server and processes responses.
+     */
     private void handleSubmit() {
         try {
             String user = userInput.getText();
@@ -132,6 +175,10 @@ public class Client extends JFrame {
         }
     }
 
+    /**
+     * creates and configures the main chat window interface.
+     * sets up message input, chat display, and chat room joining components.
+     */
     private void createChatWindow() {
         chatFrame = new JFrame("UoZap Chat");
         chatFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -193,6 +240,10 @@ public class Client extends JFrame {
         chatFrame.setVisible(true);
     }
 
+    /**
+     * starts a background thread to handle incoming messages from the server.
+     * updates the chat display when new messages arrive.
+     */
     private void startMessageHandler() {
         new Thread(() -> {
             try {
@@ -227,6 +278,10 @@ public class Client extends JFrame {
         }).start();
     }
 
+    /**
+     * establishes connection to the chat server.
+     * initializes input and output streams for communication.
+     */
     private void connectToServer() {
         try {
             socket = new Socket("localhost", 7878);
@@ -238,6 +293,10 @@ public class Client extends JFrame {
         }
     }
 
+    /**
+     * performs cleanup of resources when client is shutting down.
+     * closes network connections and streams.
+     */
     public void cleanup() {
         running = false;
         try {
@@ -249,6 +308,9 @@ public class Client extends JFrame {
         }
     }
 
+    /**
+     * entry point for the client application.
+     */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Client());
     }

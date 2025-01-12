@@ -3,6 +3,7 @@ package uozap.auth.services;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
 import uozap.auth.users.User;
 
 /**
@@ -41,7 +42,6 @@ public class UserService {
         // shall be replaced with db operations
         usersByUsername.put(username, user);
         usersByEmail.put(email, user);
-
     }
 
     /**

@@ -14,23 +14,44 @@ import uozap.auth.users.User;
 import uozap.entities.Message;
 
 /**
- * Manages socket connections and chat rooms for the messaging server.
- * Handles client authentication and connection routing to appropriate chats.
+ * manages socket connections and chat rooms for the messaging server.
+ * handles client authentication and connection routing to appropriate chats.
  */
 public class SocketManager extends Thread {
+    /** stores output streams for all active client connections. */
     private final ConcurrentHashMap<String, DataOutputStream> activeClients;
+    
+    /** service handling user authentication and management. */
     private final AuthService authService;
+    
+    /** maps chat room names to their respective Chat instances. */
     private final ConcurrentHashMap<String, Chat> chatRooms;
+    
+    /** maps usernames to their current chat room names. */
     private final ConcurrentHashMap<String, String> userChatMap;
-    private final Map<String, ClientHandler> clientHandlers = new ConcurrentHashMap<>();
+    
+    /** maps usernames to their respective client handlers. */
+    private final Map<String, ClientHandler> clientHandlers;
 
+    /**
+     * constructs a new SocketManager with the specified authentication service.
+     * initializes all required collections for managing client connections and chat rooms.
+     *
+     * @param authService service to validate user credentials
+     */
     public SocketManager(AuthService authService) {
         this.activeClients = new ConcurrentHashMap<>();
         this.chatRooms = new ConcurrentHashMap<>();
         this.userChatMap = new ConcurrentHashMap<>();
+        this.clientHandlers = new ConcurrentHashMap<>();
         this.authService = authService;
     }
 
+    /**
+     * starts the socket server and handles incoming client connections.
+     * runs in a separate thread and continuously accepts new client connections.
+     * for each connection, creates a new handler thread to process client requests.
+     */
     @Override
     public void run() {
         System.out.println("Server started on port 7878...");
@@ -48,11 +69,17 @@ public class SocketManager extends Thread {
         }
     }
 
+    /**
+     * retrieves the chat room with the specified name, creating a new one if it does not exist.
+     */
     private Chat getOrCreateChat(String chatName) {
         return chatRooms.computeIfAbsent(chatName, 
             name -> new Chat(name, UUID.randomUUID()));
     }
 
+    /**
+     * handles the client's request to join a chat room.
+     */
     private void handleJoinChat(String chatName, String username, Socket socket, 
                               DataInputStream din, DataOutputStream dout) throws Exception {
         Chat chat = getOrCreateChat(chatName);
@@ -83,6 +110,10 @@ public class SocketManager extends Thread {
         }
     }
 
+    /**
+     * handles the client connection by processing incoming commands.
+     * supports user registration, authentication, chat joining, and message broadcasting.
+     */
     private void handleClient(Socket clientSocket) {
         String username = null;
         try (DataInputStream din = new DataInputStream(clientSocket.getInputStream());
@@ -191,7 +222,6 @@ public class SocketManager extends Thread {
     // private void broadcastMessage(String sender, String message) {
     //     String fullMessage = sender + ": " + message;
     //     System.out.println("Broadcasting message: " + fullMessage); // Debug line
-
     //     String chatName = userChatMap.get(sender);
     //     if (chatName != null) {
     //         System.out.println("Sending to chat: " + chatName); // Debug line
@@ -208,4 +238,5 @@ public class SocketManager extends Thread {
     //         });
     //     }
     // }
+
 }
