@@ -128,8 +128,36 @@ public class Client extends JFrame {
     private void handleSubmit() {
         try {
             String user = userInput.getText();
-            String pass = new String(passInput.getPassword());
+            // Checking if the field username is correct
+            if (!user.matches("^[a-zA-Z][a-zA-Z0-9._]{2,19}$")) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Username not valid. It must be 3-20 characters long, start with a letter, and can include letters, digits, '.', or '_'.",
+                        "Invalid Username",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                 // Stop processing further if username is invalid
+                throw new IOException("Username field not valid");
+            }
 
+            // Checking if the field password is correct
+            String pass = new String(passInput.getPassword());
+            System.out.println(pass);
+            if (!pass.matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&+=])[A-Za-z\\d@#$!%^&+=]{8,20}$")) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Password not valid. It must meet the following criteria:\n" +
+                                "- Between 8 and 20 characters long\n" +
+                                "- At least one lowercase letter (a-z)\n" +
+                                "- At least one uppercase letter (A-Z)\n" +
+                                "- At least one digit (0-9)\n" +
+                                "- At least one special character from the set: !@#$%^&+=\n" +
+                                "- Can only include letters, digits, and these special characters",
+                        "Invalid Password",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                throw new IOException("Password field not valid");
+            }
             if (isLoginMode) {
                 dout.writeUTF("/token-" + user + "-" + pass);
                 dout.flush();
@@ -143,7 +171,22 @@ public class Client extends JFrame {
                     JOptionPane.showMessageDialog(this, "Login failed: " + response);
                 }
             } else {
+                //Checking if the field email is correct
                 String email = emailInput.getText();
+                if (!email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Email not valid. It must meet the following criteria:\n" +
+                                    "- Must include an '@' symbol separating the username and domain\n" +
+                                    "- The username can contain letters, digits, dots (.), underscores (_), and hyphens (-)\n" +
+                                    "- The domain must include at least one '.' and only letters or digits\n" +
+                                    "- No spaces or special characters outside of the allowed ones\n" +
+                                    "- Example: user@example.com",
+                            "Invalid Email",
+                            JOptionPane.WARNING_MESSAGE
+                    );
+                    throw new IOException("Email field not valid");
+                }
                 dout.writeUTF("/register-" + user + "-" + email + "-" + pass);
                 dout.flush();
 
