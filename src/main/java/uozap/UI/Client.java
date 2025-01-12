@@ -127,6 +127,7 @@ public class Client extends JFrame {
             //     JOptionPane.showMessageDialog(this, response);
             // }
         } catch (IOException ex) {
+            System.err.println("Error sending login/register request: " + ex.getMessage());
             ex.printStackTrace();
         }
     }
@@ -160,7 +161,7 @@ public class Client extends JFrame {
             try {
                 String chatName = joinChatField.getText();
                 if (!chatName.trim().isEmpty()) {
-                    dout.writeUTF("/joinChat-" + chatName + "-" + username);
+                    dout.writeUTF("/joinChat-" + chatName);
                     dout.flush();
 
                     joinChatField.setEnabled(false);
@@ -179,7 +180,7 @@ public class Client extends JFrame {
                     dout.flush();
                     messageField.setText("");
 
-                    chatArea.append("You: " + message + "\n");
+                    chatArea.append("you: " + message + "\n");
                     chatArea.setCaretPosition(chatArea.getDocument().getLength());
                 }
             } catch (IOException ex) {
@@ -195,14 +196,20 @@ public class Client extends JFrame {
     private void startMessageHandler() {
         new Thread(() -> {
             try {
+                System.out.println("waiting for a message");
                 while (running) {
-                    final String message = din.readUTF();
-                    System.out.println("Client received message: " + message); // Debug line
-                    SwingUtilities.invokeLater(() -> {
-                        chatArea.append(message + "\n");
-                        chatArea.setCaretPosition(chatArea.getDocument().getLength());
-                    });
+                    
+                    System.out.println("running");
+                    String message = din.readUTF();
+                    System.out.println("Client received: " + message);
+                    if (message != null && !message.isEmpty()) {
+                        SwingUtilities.invokeLater(() -> {
+                            chatArea.append(message + "\n");
+                            chatArea.setCaretPosition(chatArea.getDocument().getLength());
+                        });
+                    }
                 }
+                System.err.println("while closed");
             } catch (IOException e) {
                 if (running) {
                     e.printStackTrace();

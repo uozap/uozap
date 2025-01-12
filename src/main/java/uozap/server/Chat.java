@@ -2,6 +2,7 @@ package uozap.server;
 
 import java.util.ArrayList;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import uozap.auth.users.User;
 import uozap.entities.Message;
@@ -24,7 +25,7 @@ public class Chat extends Thread {
      private final ArrayList<Message> messages;
      
      /** list of active client connections */
-     private final ArrayList<ClientHandler> clientHandlers;
+     private final CopyOnWriteArrayList<ClientHandler> clientHandlers;
 
     /**
      * creates a new chat room with specified name and ID.
@@ -37,7 +38,7 @@ public class Chat extends Thread {
         this.chatID = chatID;
         this.users = new ArrayList<>();
         this.messages = new ArrayList<>();
-        this.clientHandlers = new ArrayList<>();
+        this.clientHandlers = new CopyOnWriteArrayList<>();
     }
 
      /**
@@ -79,28 +80,59 @@ public class Chat extends Thread {
     public void broadcastMessage(Message message, ClientHandler sender) {
         try {
             addMessage(message);
+            System.out.println("Broadcasting to " + clientHandlers.size() + " clients");
             for (ClientHandler handler : clientHandlers) {
-                if (handler != sender) {
-                    handler.sendMessage(message);
-                }
+                
+                System.out.println("Sending to: " + handler.getUser().getUsername());
+                handler.sendMessage(message);
+                
             }
         } catch (Exception e) {
             System.err.println("error broadcasting message: " + e.getMessage());
         }
     }
 
+    /**
+     * send the message to all the connected clients but the one which sent it.
+     * @param message the message to send
+     * @param sender the client who sent it
+     */
     public void broadcastMessage(String message, ClientHandler sender) {
+        System.out.println("Users in chat: ");
+        for (User user : users){
+            System.out.println(user.getUsername());
+        }
+
         try {
-            addMessage(new Message(message, sender.getUser()));
-            String formattedMessage = sender.getName() + ": " + message;
+            String formattedMessage = (sender != null) ? 
+                sender.getUser().getUsername() + ": " + message : 
+                message;
+    
+            if (sender != null) {
+                addMessage(new Message(message, sender.getUser()));
+            }
+
+            // System.out.println("Broadcasting message: " + formattedMessage);
+    
             for (ClientHandler handler : clientHandlers) {
                 if (handler != sender) {
+                    System.out.println("Broadcasting message: " + formattedMessage + " to: " + handler.getUser().getUsername());
                     handler.sendMessage(formattedMessage);
                 }
             }
         } catch (Exception e) {
             System.err.println("Error broadcasting message: " + e.getMessage());
         }
+    }
+
+    public void broadcastUserJoined(User user) {
+        String message = user.getUsername() + " has joined the chat";
+        broadcastMessage(message, null);
+    }
+    
+    public void broadcastUserLeft(User user) {
+        String message = user.getUsername() + " has left the chat";
+        broadcastMessage(message, null);
     }
 
     // remove message later on

@@ -3,9 +3,9 @@ package uozap.server;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -22,6 +22,7 @@ public class SocketManager extends Thread {
     private final AuthService authService;
     private final ConcurrentHashMap<String, Chat> chatRooms;
     private final ConcurrentHashMap<String, String> userChatMap;
+    private final Map<String, ClientHandler> clientHandlers = new ConcurrentHashMap<>();
 
     public SocketManager(AuthService authService) {
         this.activeClients = new ConcurrentHashMap<>();
@@ -58,15 +59,22 @@ public class SocketManager extends Thread {
         User user = authService.getUserService().getUserByUsername(username);
         
         if (user != null) {
-            chat.addUser(user);
-            ObjectOutputStream oout = new ObjectOutputStream(socket.getOutputStream());
-            ClientHandler handler = new ClientHandler(user, chat, socket, din, oout);
-            chat.addClientHandler(handler);
             
+            //ObjectOutputStream oout = new ObjectOutputStream(socket.getOutputStream());
+            // DataOutputStream dout = new DataOutputStream(socket.getOutputStream());
+            
+            ClientHandler handler = new ClientHandler(user, chat, socket, din, dout);
+            chat.addClientHandler(handler);
+            chat.addUser(user);
+            
+            
+
+            clientHandlers.put(username, handler); 
             handler.start();
 
             userChatMap.put(username, chatName);
             activeClients.put(username, dout);
+
             dout.writeUTF("Chat joined successfully");
         } else {
             dout.writeUTF("Failed to join chat");
@@ -120,7 +128,7 @@ public class SocketManager extends Thread {
                     
                     // /joinChat-{chatname}
                     String[] parts = command.split("-");
-                    if (parts.length == 3) {
+                    if (parts.length == 2) {
                         String chatName = parts[1];
                         handleJoinChat(chatName, username, clientSocket, din, dout);
                     } else {
@@ -136,7 +144,8 @@ public class SocketManager extends Thread {
                     if (chat != null) {
                         User sender = authService.getUserService().getUserByUsername(username);
                         Message chatMessage = new Message(message, sender);
-                        chat.broadcastMessage(chatMessage, null);
+                        ClientHandler handler = clientHandlers.get(username);
+                        chat.broadcastMessage(chatMessage, handler);
                     }
 
                 } else if (!authenticated) {
@@ -150,6 +159,8 @@ public class SocketManager extends Thread {
                 }
                 dout.flush();
             }
+
+            // System.out.println("HOW DID THE WHILE CLOSE WHIT NO EXCEPTION");
 
         } catch (Exception e) {
             System.err.println("Client disconnected: " + clientSocket);
@@ -166,24 +177,24 @@ public class SocketManager extends Thread {
         }
     }
 
-    private void broadcastMessage(String sender, String message) {
-        String fullMessage = sender + ": " + message;
-        System.out.println("Broadcasting message: " + fullMessage); // Debug line
+    // private void broadcastMessage(String sender, String message) {
+    //     String fullMessage = sender + ": " + message;
+    //     System.out.println("Broadcasting message: " + fullMessage); // Debug line
 
-        String chatName = userChatMap.get(sender);
-        if (chatName != null) {
-            System.out.println("Sending to chat: " + chatName); // Debug line
-            activeClients.forEach((username, dout) -> {
-                if (chatName.equals(userChatMap.get(username)) && !username.equals(sender)) {
-                    try {
-                        dout.writeUTF(fullMessage);
-                        dout.flush();
-                        System.out.println("Message sent to: " + username); // Debug line
-                    } catch (IOException e) {
-                        System.err.println("Failed to send message to " + username);
-                    }
-                }
-            });
-        }
-    }
+    //     String chatName = userChatMap.get(sender);
+    //     if (chatName != null) {
+    //         System.out.println("Sending to chat: " + chatName); // Debug line
+    //         activeClients.forEach((username, dout) -> {
+    //             if (chatName.equals(userChatMap.get(username)) && !username.equals(sender)) {
+    //                 try {
+    //                     dout.writeUTF(fullMessage);
+    //                     dout.flush();
+    //                     System.out.println("Message sent to: " + username); // Debug line
+    //                 } catch (IOException e) {
+    //                     System.err.println("Failed to send message to " + username);
+    //                 }
+    //             }
+    //         });
+    //     }
+    // }
 }

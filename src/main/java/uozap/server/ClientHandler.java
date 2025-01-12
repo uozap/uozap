@@ -54,6 +54,16 @@ class ClientHandler extends Thread {
         this.running = true;
     }
 
+    public ClientHandler(User user, Chat chat, Socket clientSocket, DataInputStream din, DataOutputStream dout) throws Exception {
+        this.user = user;
+        this.chat = chat;
+        this.clientSocket = clientSocket;
+        this.din = din;
+        this.dout = dout;
+        this.oout = new ObjectOutputStream(clientSocket.getOutputStream());
+        this.running = true;
+    }
+
     /**
      * continuously listens for incoming messages from the client.
      * creates Message objects and broadcasts them to the chat.
@@ -62,6 +72,7 @@ class ClientHandler extends Thread {
     @Override
     public void run() {
         try {
+            chat.broadcastUserJoined(user);
             while (running) {
                 String message = din.readUTF();
                 Message chatMessage = new Message(message, user);
@@ -81,25 +92,39 @@ class ClientHandler extends Thread {
      * 
      * @param message the Message object to send to the client
      */
+    // public void sendMessage(Message message) {
+    //     try {
+    //         oout.writeObject(message);
+    //         oout.flush();
+    //         System.out.println("a message was bradcasted by: " + message.getSender().getUsername() + ": " + message.getContent());
+    //     } catch (IOException e) {
+    //         System.err.println("error sending message: " + e.getMessage());
+    //         e.printStackTrace();
+    //     }
+    // }
+
     public void sendMessage(Message message) {
         try {
-            oout.writeObject(message);
-            oout.flush();
-            System.out.println("a message was bradcasted by: " + message.getSender().getUsername() + ": " + message.getContent());
+            System.out.println("a Message message was sent by: " + message.getSender().getUsername() + ": " + message.getContent());
+            dout.writeUTF(message.getSender().getUsername() + ": " + message.getContent());
+            dout.flush();
         } catch (IOException e) {
-            System.err.println("error sending message: " + e.getMessage());
+            System.err.println("Error sending message: " + e.getMessage());
             e.printStackTrace();
+            cleanup();
         }
     }
 
     public void sendMessage(String message) {
         try {
-            System.out.println("Sending message to client: " + message); // Debug line
+            System.out.println("a String message was sent: " + message);
             dout.writeUTF(message);
             dout.flush();
+            System.out.println("message flushed");
         } catch (IOException e) {
             System.err.println("Error sending message: " + e.getMessage());
             e.printStackTrace();
+            cleanup();
         }
     }
 
@@ -110,10 +135,16 @@ class ClientHandler extends Thread {
     private void cleanup() {
         running = false;
         try {
+            chat.broadcastUserLeft(user);
             chat.removeUser(user);
-            clientSocket.close();
+            if (din != null) din.close();
+            if (dout != null) dout.close();
+            if (oout != null) oout.close();
+            if (clientSocket != null && !clientSocket.isClosed()) {
+                clientSocket.close();
+            }
         } catch (Exception e) {
-            System.err.println("error during cleanup: " + e.getMessage());
+            System.err.println("Error during cleanup: " + e.getMessage());
         }
     }
 
