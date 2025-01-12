@@ -61,32 +61,26 @@ public class ServerTestMain {
         System.out.println(GREEN + "Server is up and running." + RESET);
 
         // register users
-        // us.registerUser("username3", "email3@example.com", "password1");
-        // us.registerUser("username4", "email4@example.com", "password2");
+        us.registerUser("username3", "email1@example.com", "password1");
+        us.registerUser("username2", "email2@example.com", "password2");
 
         // authenticate users
-        System.out.println("1");
         User user1 = us.getUserByUsername("username3");
-        User user2 = us.getUserByUsername("username4");
+        User user2 = us.getUserByUsername("username2");
         String token1 = as.authenticate("username3", "password1");
-        String token2 = as.authenticate("username4", "password2");
+        String token2 = as.authenticate("username2", "password2");
 
-        System.out.println("2");
         // simulate multiple clients connecting to the chat
         Thread client1 = new Thread(() -> simulateClientConnection("TestChat", token1, user1));
         Thread client2 = new Thread(() -> simulateClientConnection("TestChat", token2, user2));
 
-        System.out.println("3");
         client1.start();
         client2.start();
 
-        System.out.println("4");
         client1.join();
         client2.join();
-
-        System.out.println("5");
     }
-
+    
     /**
      * simulates a client connection to the chat server.
      *
@@ -109,12 +103,17 @@ public class ServerTestMain {
                 // read messages from the server
                 Object message = oin.readObject();
                 System.out.println("Message: " + message + " recived by user " + user.getUsername());
-                
             }
 
             // note: In a real client, you would have a separate thread to read messages from the server
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+
+     
     }
+
+
+
 }

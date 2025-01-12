@@ -1,93 +1,242 @@
 package uozap.server;
 
-import uozap.auth.services.AuthService;
-import uozap.auth.users.User;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+import uozap.auth.services.AuthService;
+import uozap.auth.users.User;
+import uozap.entities.Message;
 
 /**
  * manages socket connections and chat rooms for the messaging server.
  * handles client authentication and connection routing to appropriate chats.
  */
 public class SocketManager extends Thread {
-    /** maps chat names to their corresponding Chat instances */
-    private HashMap<String, Chat> chats;
+    /** stores output streams for all active client connections. */
+    private final ConcurrentHashMap<String, DataOutputStream> activeClients;
     
-    /** service for authenticating users and validating tokens */
+    /** service handling user authentication and management. */
     private final AuthService authService;
+    
+    /** maps chat room names to their respective Chat instances. */
+    private final ConcurrentHashMap<String, Chat> chatRooms;
+    
+    /** maps usernames to their current chat room names. */
+    private final ConcurrentHashMap<String, String> userChatMap;
+    
+    /** maps usernames to their respective client handlers. */
+    private final Map<String, ClientHandler> clientHandlers;
 
     /**
-     * initializes the socket manager and starts listening for connections.
-     * creates new chats or routes clients to existing ones based on requests.
+     * constructs a new SocketManager with the specified authentication service.
+     * initializes all required collections for managing client connections and chat rooms.
      *
-     * @param authService service used to validate user tokens
+     * @param authService service to validate user credentials
      */
     public SocketManager(AuthService authService) {
-        this.chats = new HashMap<String, Chat>();
+        this.activeClients = new ConcurrentHashMap<>();
+        this.chatRooms = new ConcurrentHashMap<>();
+        this.userChatMap = new ConcurrentHashMap<>();
+        this.clientHandlers = new ConcurrentHashMap<>();
         this.authService = authService;
     }
 
     /**
-     * starts the socket manager and listens for incoming connections.
-     * creates a new chat for each new connection.
+     * starts the socket server and handles incoming client connections.
+     * runs in a separate thread and continuously accepts new client connections.
+     * for each connection, creates a new handler thread to process client requests.
      */
     @Override
     public void run() {
-        System.out.println("multiServer started...");
+        System.out.println("Server started on port 7878...");
 
-        // start listening on port 7878.
         try (ServerSocket serverSocket = new ServerSocket(7878)) {
-            while(true) {
-                /*
-                 * the server accepts a client connection and creates a new socket for it.
-                 */
+            while (true) {
                 Socket clientSocket = serverSocket.accept();
-                DataInputStream din = new DataInputStream(clientSocket.getInputStream());
+                System.out.println("New client connected: " + clientSocket);
 
-                String chatName = din.readUTF();
-                String token = din.readUTF();
-
-                try {
-                    User user = authService.getTokenService().validateToken(token);
-
-                    /*
-                     * the client is then routed to the appropriate chat room based on the request.
-                     */
-                    Chat chat;
-                    if(!chats.containsKey(chatName)) {
-                        chat = new Chat(chatName, UUID.randomUUID());
-                        chats.put(chatName, chat);
-                        chat.start();
-                    } else {
-                        chat = chats.get(chatName);
-                    }
-
-                    /*
-                     * the client handler is started in a new thread to handle the client connection.
-                     * the client handler is responsible for sending and receiving messages.
-                     */
-                    ClientHandler clientHandler = new ClientHandler(user, chat, clientSocket, din);
-                    chat.addClientHandler(clientHandler);
-                    clientHandler.start();
-
-                    System.out.println("user: " + user.getUsername() + " joined chat: " + chatName);
-
-                } catch (Exception e) {
-                    System.err.println("error: " + e.getMessage());
-                    try {
-                        clientSocket.close();
-                    } catch (IOException ignored) {}
-                }
+                // Handle the client in a separate thread
+                new Thread(() -> handleClient(clientSocket)).start();
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
-        }   
+        }
     }
 
-    
-}
+    /**
+     * retrieves the chat room with the specified name, creating a new one if it does not exist.
+     */
+    private Chat getOrCreateChat(String chatName) {
+        return chatRooms.computeIfAbsent(chatName, 
+            name -> new Chat(name, UUID.randomUUID()));
+    }
 
+    /**
+     * handles the client's request to join a chat room.
+     */
+    private void handleJoinChat(String chatName, String username, Socket socket, 
+                              DataInputStream din, DataOutputStream dout) throws Exception {
+        Chat chat = getOrCreateChat(chatName);
+        User user = authService.getUserService().getUserByUsername(username);
+        
+        if (user != null) {
+            
+            //ObjectOutputStream oout = new ObjectOutputStream(socket.getOutputStream());
+            // DataOutputStream dout = new DataOutputStream(socket.getOutputStream());
+            System.out.println("Creating handler for user: " + username);
+            ClientHandler handler = new ClientHandler(user, chat, socket, din, dout);
+            chat.addClientHandler(handler);
+            chat.addUser(user);
+            
+            
+
+            clientHandlers.put(username, handler); 
+            System.out.println("Registered handler for: " + username);
+            handler.start();
+
+            userChatMap.put(username, chatName);
+            activeClients.put(username, dout);
+
+            System.out.println("Handler setup complete for: " + username);
+            dout.writeUTF("Chat joined successfully");
+        } else {
+            dout.writeUTF("Failed to join chat");
+        }
+    }
+
+    /**
+     * handles the client connection by processing incoming commands.
+     * supports user registration, authentication, chat joining, and message broadcasting.
+     */
+    private void handleClient(Socket clientSocket) {
+        String username = null;
+        try (DataInputStream din = new DataInputStream(clientSocket.getInputStream());
+             DataOutputStream dout = new DataOutputStream(clientSocket.getOutputStream())) {
+
+            boolean authenticated = false;
+
+            while (true) {
+                String command = din.readUTF();
+                System.out.println("Received command: " + command);
+
+                if (command.startsWith("/register")) {
+
+                    // /register-{username}-{email}-{password}
+                    String[] parts = command.split("-");
+                    if (parts.length == 4) {
+                        username = parts[1];
+                        String email = parts[2];
+                        String password = parts[3];
+                        authService.getUserService().registerUser(username, email, password);
+                        dout.writeUTF("User registered successfully");
+                    } else {
+                        dout.writeUTF("Invalid register command format");
+                    }
+                    
+                } else if (command.startsWith("/token")) {
+
+                    // /token-{username}-{password}
+                    String[] parts = command.split("-");
+                    if (parts.length == 3) {
+                        username = parts[1];
+                        String password = parts[2];
+                        String token = authService.authenticate(username, password);
+                        if (token != null) {
+                            authenticated = true;
+                            dout.writeUTF("Token: " + token);
+                        } else {
+                            dout.writeUTF("Invalid credentials");
+                        }
+                    } else {
+                        dout.writeUTF("Invalid token command format");
+                    }
+
+                } else if (authenticated && command.startsWith("/joinChat")) {
+                    
+                    // /joinChat-{chatname}
+                    String[] parts = command.split("-");
+                    if (parts.length == 2) {
+                        String chatName = parts[1];
+                        handleJoinChat(chatName, username, clientSocket, din, dout);
+                    } else {
+                        dout.writeUTF("Invalid joinChat command format");
+                    }
+
+                } else if (authenticated && command.startsWith("/message")) {
+
+                    // /message-{content}
+                    // String message = command.substring(9);
+                    String message = command.replaceFirst("^/message-", "");
+                    message = message.replaceFirst("^/message-", ""); // fixing cases where removing the substring is not enought
+                    String chatName = userChatMap.get(username);
+                    Chat chat = chatRooms.get(chatName);
+                    if (chat != null) {
+                        User sender = authService.getUserService().getUserByUsername(username);
+                        Message chatMessage = new Message(message, sender);
+                        ClientHandler handler = clientHandlers.get(username);
+                        if (handler == null) {
+                            System.err.println("No handler found for user: " + username);
+                            // re-create handler if missing
+                            handler = new ClientHandler(sender, chat, clientSocket, din, dout);
+                            clientHandlers.put(username, handler);
+                            chat.addClientHandler(handler);
+                        }
+                        chat.broadcastMessage(chatMessage, handler);
+                    }
+
+                } else if (!authenticated) {
+
+                    dout.writeUTF("Please authenticate first");
+
+                } else {
+
+                    dout.writeUTF("Unknown command");
+
+                }
+                dout.flush();
+            }
+
+            // System.out.println("HOW DID THE WHILE CLOSE WHIT NO EXCEPTION");
+
+        } catch (Exception e) {
+            System.err.println("Client disconnected: " + clientSocket);
+        } finally {
+            if (username != null) {
+                activeClients.remove(username);
+                userChatMap.remove(username);
+            }
+            try {
+                clientSocket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    // private void broadcastMessage(String sender, String message) {
+    //     String fullMessage = sender + ": " + message;
+    //     System.out.println("Broadcasting message: " + fullMessage); // Debug line
+    //     String chatName = userChatMap.get(sender);
+    //     if (chatName != null) {
+    //         System.out.println("Sending to chat: " + chatName); // Debug line
+    //         activeClients.forEach((username, dout) -> {
+    //             if (chatName.equals(userChatMap.get(username)) && !username.equals(sender)) {
+    //                 try {
+    //                     dout.writeUTF(fullMessage);
+    //                     dout.flush();
+    //                     System.out.println("Message sent to: " + username); // Debug line
+    //                 } catch (IOException e) {
+    //                     System.err.println("Failed to send message to " + username);
+    //                 }
+    //             }
+    //         });
+    //     }
+    // }
+
+}

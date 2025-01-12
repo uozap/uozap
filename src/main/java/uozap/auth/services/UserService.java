@@ -2,6 +2,7 @@ package uozap.auth.services;
 
 import java.sql.SQLException;
 import java.util.UUID;
+
 import uozap.auth.users.User;
 import uozap.database.DatabaseService;
 

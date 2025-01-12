@@ -1,6 +1,8 @@
-# uozap
+# Uozap
 
 This repository contains a multi-server group chat system implemented in Java.
+The chat is being implemented as part of a school work that we have to do in groups of 4/5 people.
+Most of the things we are doing we have never seen at school.
 
 ## Documentation
 - [Documentation in English](docs/en/README.md)
@@ -14,7 +16,7 @@ This repository contains a multi-server group chat system implemented in Java.
 ## License
 
 ```
-Copyright 2024, uozap
+Copyright 2024, Uozap
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
