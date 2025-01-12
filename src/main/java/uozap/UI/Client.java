@@ -229,7 +229,10 @@ public class Client extends JFrame {
 
                     chatArea.append("you: " + message + "\n");
                     chatArea.setCaretPosition(chatArea.getDocument().getLength());
+                } else {
+                    System.out.println("error sending the message");                    
                 }
+
             } catch (IOException ex) {
                 ex.printStackTrace();
                 chatArea.append("Error sending message\n");
