@@ -203,8 +203,15 @@ public class Client extends JFrame {
                     String message = din.readUTF();
                     System.out.println("Client received: " + message);
                     if (message != null && !message.isEmpty()) {
+
+                        // avoid sending the message part back to the sender
+                        String cleanMessage = message.replace("/message", "");
+                        String cleanMessage1 = cleanMessage.replace("/message-", "");
+                        String cleanMessage2 = cleanMessage1.replace("essage-", "");
+                        String cleanMessage3 = cleanMessage2.replace("essage", "");
+                        
                         SwingUtilities.invokeLater(() -> {
-                            chatArea.append(message + "\n");
+                            chatArea.append(cleanMessage3 + "\n");
                             chatArea.setCaretPosition(chatArea.getDocument().getLength());
                         });
                     }

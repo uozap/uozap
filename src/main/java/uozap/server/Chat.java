@@ -82,10 +82,10 @@ public class Chat extends Thread {
             addMessage(message);
             System.out.println("Broadcasting to " + clientHandlers.size() + " clients");
             for (ClientHandler handler : clientHandlers) {
-                
-                System.out.println("Sending to: " + handler.getUser().getUsername());
-                handler.sendMessage(message);
-                
+                if (handler != sender) {
+                    System.out.println("Sending to: " + handler.getUser().getUsername());
+                    handler.sendMessage(message);
+                }
             }
         } catch (Exception e) {
             System.err.println("error broadcasting message: " + e.getMessage());

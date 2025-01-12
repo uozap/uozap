@@ -62,7 +62,7 @@ public class SocketManager extends Thread {
             
             //ObjectOutputStream oout = new ObjectOutputStream(socket.getOutputStream());
             // DataOutputStream dout = new DataOutputStream(socket.getOutputStream());
-            
+            System.out.println("Creating handler for user: " + username);
             ClientHandler handler = new ClientHandler(user, chat, socket, din, dout);
             chat.addClientHandler(handler);
             chat.addUser(user);
@@ -70,11 +70,13 @@ public class SocketManager extends Thread {
             
 
             clientHandlers.put(username, handler); 
+            System.out.println("Registered handler for: " + username);
             handler.start();
 
             userChatMap.put(username, chatName);
             activeClients.put(username, dout);
 
+            System.out.println("Handler setup complete for: " + username);
             dout.writeUTF("Chat joined successfully");
         } else {
             dout.writeUTF("Failed to join chat");
@@ -138,13 +140,22 @@ public class SocketManager extends Thread {
                 } else if (authenticated && command.startsWith("/message")) {
 
                     // /message-{content}
-                    String message = command.substring(9);
+                    // String message = command.substring(9);
+                    String message = command.replaceFirst("^/message-", "");
+                    message = message.replaceFirst("^/message-", ""); // fixing cases where removing the substring is not enought
                     String chatName = userChatMap.get(username);
                     Chat chat = chatRooms.get(chatName);
                     if (chat != null) {
                         User sender = authService.getUserService().getUserByUsername(username);
                         Message chatMessage = new Message(message, sender);
                         ClientHandler handler = clientHandlers.get(username);
+                        if (handler == null) {
+                            System.err.println("No handler found for user: " + username);
+                            // re-create handler if missing
+                            handler = new ClientHandler(sender, chat, clientSocket, din, dout);
+                            clientHandlers.put(username, handler);
+                            chat.addClientHandler(handler);
+                        }
                         chat.broadcastMessage(chatMessage, handler);
                     }
 
