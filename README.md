@@ -2,9 +2,11 @@
 
 This repository contains a multi-server group chat system implemented in Java.
 
-The chat was implemented as part of a school work that we have to do in groups of 5 people.
-
 Most of the things we did we had never seen at school.
+> **Note:** The chat was implemented as part of a school work (2-week timeframe).  
+> It is no longer maintained and is archived for reference purposes only.
+
+![Status: Archived](https://img.shields.io/badge/status-archived-red)
 
 ## Contributions
 
